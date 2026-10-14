@@ -9,7 +9,7 @@
 
 ## Stage 1 — count keypresses
 
-- [x] Check actual Ubuntu version, desktop/compositor, seat, and input devices. See STAGE1.md (2026-10-14).
+- [x] Check actual Ubuntu version, desktop/compositor, seat, and input devices. See [STAGE1.md](STAGE1.md) (2026-10-14).
 - [x] Build a runnable evdev counting prototype; verify stream opening on the target desktop without permission changes.
 - [x] Build event filtering and an aggregate-only counter with synthetic-event tests.
 - [x] Add foreground CLI, periodic total display, graceful shutdown, and single-instance protection.
@@ -44,6 +44,6 @@
 
 ## Next-session handoff
 
-Read STAGE1.md, README.md, and PLAN.md. Stage 1 is in progress. The user confirmed the prototype appears to count correctly and explicitly accepted counting while running across lock screens and other sessions. Session checks and their tests were removed; the CLI starts without flags, and --prototype remains compatible. Lifecycle fixtures now pass for hotplug, multiple keyboards, drops, replacement races, access failures, and kernel-device aliases. A rebuilt three-second host run opened both interfaces with no errors. Continue with exact repeat/modifier/mouse validation, physical hotplug/multiple-keyboard checks, and deduplication across distinct composite interfaces. Alias deduplication does not solve mirrored events from distinct kernel devices. Hardware checks require host device access outside the sandbox. No dependencies were installed, input permissions changed, or services registered.
+Read [docs/STAGE1.md](STAGE1.md), [docs/README.md](README.md), and [docs/PLAN.md](PLAN.md). Stage 1 is in progress. The user confirmed the prototype appears to count correctly and explicitly accepted counting while running across lock screens and other sessions. Session checks and their tests were removed; the CLI starts without flags, and --prototype remains compatible. Lifecycle fixtures now pass for hotplug, multiple keyboards, drops, replacement races, access failures, and kernel-device aliases. A rebuilt three-second host run opened both interfaces with no errors. Continue with exact repeat/modifier/mouse validation, physical hotplug/multiple-keyboard checks, and deduplication across distinct composite interfaces. Alias deduplication does not solve mirrored events from distinct kernel devices. Hardware checks require host device access outside the sandbox. No dependencies were installed, input permissions changed, or services registered.
 
 The provided `.git` directory did not function as a Git repository during setup (`git status` reported no repository). Files are prepared in the workspace; initialize or repair version control separately when appropriate, preserving environment-managed metadata.

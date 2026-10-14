@@ -14,6 +14,8 @@ Device inventory included a keyboard interface and a composite mouse interface w
 
 ## Workflow
 
+Run these commands from the repository root.
+
 ```sh
 go build -buildvcs=false -o bin/keycountr ./cmd/keycountr
 ./bin/keycountr
