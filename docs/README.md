@@ -2,7 +2,7 @@
 
 A small Go application for Ubuntu that counts keyboard presses without recording typed text.
 
-Status: a stage-1 foreground counter is runnable on Linux amd64. The user confirmed physical counting and shutdown with the default command. Device lifecycle and recovery have synthetic test coverage; physical edge cases and duplicate events across distinct interfaces remain under validation; no database or server has been implemented.
+Status: Stage 1 is complete for the validated Linux amd64 setup. Physical key/modifier counting, repeat and mouse exclusion, keyboard power-off/on recovery, and shutdown are user-confirmed. Further split-keyboard wired/Bluetooth and multiple-keyboard checks are backlogged. Explicit interface exclusion is available for mirrored composite events; no database or server has been implemented.
 
 ## Scope
 
@@ -29,7 +29,7 @@ go build -buildvcs=false -o bin/keycountr ./cmd/keycountr
 
 The counter prints a running total once per second. Wait for `state=counting`, then press keys, hold a key to test repeats, and click the mouse. Ctrl+C prints the final total and stops. Totals reset on restart. The previous `--prototype` flag is still accepted for compatibility; no flags are required to count.
 
-`udevadm` supplies device classification. Neither D-Bus access nor a session ID is required. A private runtime directory (`$XDG_RUNTIME_DIR`, or `/run/user/UID`) holds the per-user instance lock. `-buildvcs=false` works around this workspace's nonfunctional `.git` metadata.
+`udevadm` supplies device classification. Neither D-Bus access nor a session ID is required. A private runtime directory (`$XDG_RUNTIME_DIR`, or `/run/user/UID`) holds the per-user instance lock. `-buildvcs=false` omits VCS metadata from the build; Git operations now work in this workspace.
 
 An optional read-only device-access diagnostic does not open input streams:
 
@@ -37,6 +37,6 @@ An optional read-only device-access diagnostic does not open input streams:
 bash tools/stage1-probe.sh
 ```
 
-See [STAGE1.md](STAGE1.md) for observations, manual checks, automated tests, and known counting gaps. Input permissions and services have not been changed.
+See [STAGE1.md](STAGE1.md) for observations, manual checks, automated tests, and known counting gaps. Existing ordinary-user device access is the chosen setup on this host; input permissions and services have not been changed. For mirrored composite events, `--exclude-device` accepts a repeatable absolute input-interface path; prefer a stable `/dev/input/by-id/` symlink. See the interface isolation workflow in [STAGE1.md](STAGE1.md) before choosing one.
 
 See [PLAN.md](PLAN.md) for design decisions and [TODO.md](TODO.md) for the implementation checklist.

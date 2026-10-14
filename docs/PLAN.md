@@ -71,6 +71,6 @@ Use a small aggregate-only boundary between input and the counter. Test filterin
 
 ## Deferred choices
 
-Resolve during stage 1: device selection/deduplication, extended-key coverage, backend reliability, and minimal permissions. Resolve during stage 2: SQLite driver and buffering bounds. Defaults pending implementation review: include modifier keys, exclude repeats, minute granularity, local timezone, and Monday-start weeks.
+Stage 1 defaults: classic keyboard codes 1..255 including modifiers, independent streams for distinct kernel devices, explicit interface exclusion for verified mirrors, and existing ordinary-user access on this host. Physical device validation remains pending; extended key coverage and a portable permission fallback are deferred until needed. Resolve during stage 2: SQLite driver and buffering bounds. Defaults pending implementation review: include modifier keys, exclude repeats, minute granularity, local timezone, and Monday-start weeks.
 
 Out of initial scope: per-key statistics, app/window tracking, mouse counters, typed-text capture, remote dashboards, multi-user aggregation, and cross-platform support.

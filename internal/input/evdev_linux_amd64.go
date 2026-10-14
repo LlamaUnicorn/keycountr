@@ -22,11 +22,19 @@ type device struct {
 // aggregate counts and coarse coverage diagnostics.
 type Devices struct {
 	io          deviceIO
+	excluded    []string
 	open        map[string]*device
 	interfaces  int
 	unavailable int
 	readErrors  uint64
 	dropped     uint64
+}
+
+// NewDevices excludes explicitly selected kernel devices, including their
+// aliases. Paths stay inside the input boundary and are never logged. Stable
+// /dev/input/by-id paths are resolved again on every scan for reconnection.
+func NewDevices(excluded []string) *Devices {
+	return &Devices{excluded: append([]string(nil), excluded...)}
 }
 
 type Coverage struct {
@@ -67,6 +75,22 @@ func (d *Devices) Refresh(ctx context.Context) {
 		return
 	}
 	d.interfaces, d.unavailable = 0, 0
+	excluded := make(map[uint64]bool)
+	for _, path := range d.excluded {
+		stat, err := io.stat(path)
+		if errors.Is(err, syscall.ENOENT) || errors.Is(err, syscall.ENODEV) {
+			continue // A disconnected excluded device has nothing to read.
+		}
+		if err != nil || stat.Mode&syscall.S_IFMT != syscall.S_IFCHR {
+			// Do not collect while an exclusion cannot be established safely.
+			for path, dev := range d.open {
+				d.remove(path, dev)
+			}
+			d.unavailable = 1
+			return
+		}
+		excluded[stat.Rdev] = true
+	}
 	seen := make(map[string]bool)
 	for _, path := range paths {
 		// Keep existing streams on incomplete discovery; only remove nodes known
@@ -88,6 +112,12 @@ func (d *Devices) Refresh(ctx context.Context) {
 			continue
 		}
 		identity := identityOf(stat)
+		if excluded[identity.rdev] {
+			if old := d.open[path]; old != nil {
+				d.remove(path, old)
+			}
+			continue
+		}
 		if old := d.open[path]; old != nil {
 			if old.identity == identity {
 				d.interfaces++

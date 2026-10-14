@@ -12,6 +12,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -29,6 +30,15 @@ func run() error {
 	// Keep the original command working; counting no longer needs an opt-in.
 	flag.Bool("prototype", false, "compatibility flag; counting is now the default")
 	duration := flag.Duration("duration", 0, "stop after this duration (default: until Ctrl+C)")
+	var excluded []string
+	flag.Func("exclude-device", "exclude an input interface by absolute /dev/input path (repeatable; prefer by-id)", func(path string) error {
+		path = filepath.Clean(path)
+		if !strings.HasPrefix(path, "/dev/input/") {
+			return errors.New("expected an absolute path under /dev/input")
+		}
+		excluded = append(excluded, path)
+		return nil
+	})
 	flag.Parse()
 	if flag.NArg() != 0 || *duration < 0 {
 		return errors.New("unexpected arguments or negative duration")
@@ -55,7 +65,8 @@ func run() error {
 	defer unlock()
 	fmt.Println("Counting while running, including lock screens and other sessions when device access permits.")
 	fmt.Println("Physical key-downs including modifiers; repeats and mouse buttons excluded. Ctrl+C stops. Totals reset on restart.")
-	var devices input.Devices
+	fmt.Println("If no input opens or unavailable is nonzero, run bash tools/stage1-probe.sh and see docs/STAGE1.md for access guidance.")
+	devices := input.NewDevices(excluded)
 	defer devices.Close()
 	var total uint64
 	state := "starting"

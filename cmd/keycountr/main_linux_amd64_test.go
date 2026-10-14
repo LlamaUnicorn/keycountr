@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -21,6 +22,9 @@ func TestCounterProcess(t *testing.T) {
 	os.Args = []string{"keycountr", "--duration=50ms"}
 	if os.Getenv("KEYCOUNTR_TEST_LEGACY") == "yes" {
 		os.Args = append(os.Args, "--prototype")
+	}
+	if os.Getenv("KEYCOUNTR_TEST_LEGACY") == "excluded" {
+		os.Args = append(os.Args, "--exclude-device=/dev/input/by-id/keycountr-test-excluded")
 	}
 	flag.CommandLine = flag.NewFlagSet("keycountr", flag.ExitOnError)
 	main()
@@ -51,7 +55,7 @@ func TestCountingWithoutSessionServices(t *testing.T) {
 	t.Setenv("XDG_SESSION_ID", "")
 	t.Setenv("DBUS_SESSION_BUS_ADDRESS", "unix:path=/nonexistent")
 	t.Setenv("KEYCOUNTR_TEST_PROCESS", "yes")
-	for _, legacy := range []string{"no", "yes"} {
+	for _, legacy := range []string{"no", "yes", "excluded"} {
 		t.Run("legacy="+legacy, func(t *testing.T) {
 			t.Setenv("KEYCOUNTR_TEST_LEGACY", legacy)
 			cmd := exec.Command(os.Args[0], "-test.run=^TestCounterProcess$")
@@ -61,6 +65,15 @@ func TestCountingWithoutSessionServices(t *testing.T) {
 			}
 			if !bytes.Contains(output, []byte("state=stopped")) || strings.Contains(string(output), "paused") {
 				t.Fatalf("unexpected lifecycle output: %s", output)
+			}
+			status := regexp.MustCompile(`^total=[0-9]+ state=(starting|counting|no-input|stopped) keyboards=[0-9]+/[0-9]+ unavailable=[0-9]+ dropped=[0-9]+ read_errors=[0-9]+$`)
+			for _, line := range strings.Split(strings.TrimSpace(string(output)), "\n") {
+				if strings.HasPrefix(line, "total=") && !status.MatchString(line) {
+					t.Fatalf("status contains non-aggregate fields: %s", line)
+				}
+			}
+			if bytes.Contains(output, []byte("keycountr-test-excluded")) {
+				t.Fatal("CLI disclosed an excluded device identifier")
 			}
 			if _, err := os.Stat(filepath.Join(dir, "session-tool-called")); !os.IsNotExist(err) {
 				t.Fatal("CLI invoked a session service")

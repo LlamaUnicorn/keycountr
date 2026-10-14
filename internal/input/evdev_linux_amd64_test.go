@@ -47,7 +47,12 @@ func (f *fakeIO) metadata(context.Context, string) (string, error) {
 	f.metadataCalls++
 	return "ID_INPUT_KEYBOARD=1", f.metadataErr
 }
-func (f *fakeIO) stat(p string) (syscall.Stat_t, error) { return f.nodes[p].stat, nil }
+func (f *fakeIO) stat(p string) (syscall.Stat_t, error) {
+	if n := f.nodes[p]; n != nil {
+		return n.stat, nil
+	}
+	return syscall.Stat_t{}, syscall.ENOENT
+}
 func (f *fakeIO) open(p string) (int, error) {
 	n := f.nodes[p]
 	if n.openErr != nil {
@@ -161,6 +166,46 @@ func TestDeviceAliases(t *testing.T) {
 	alias.data = event(1, 30, 1)
 	if d.Coverage().Open != 1 || d.Read() != 0 {
 		t.Fatal("alias takeover failed or invented held press")
+	}
+	d.Close()
+}
+
+func TestExcludedCompositeInterface(t *testing.T) {
+	d, io := fixture()
+	a := io.add("keyboard", 1)
+	b := io.add("composite", 2)
+	alias := io.add("stable-alias", 3)
+	alias.stat.Rdev = b.stat.Rdev
+	d.excluded = []string{"stable-alias"}
+	d.Refresh(context.Background())
+	a.data, b.data = event(1, 30, 1), event(1, 30, 1)
+	if d.Coverage().Open != 1 || d.Coverage().Interfaces != 1 || d.Read() != 1 {
+		t.Fatal("excluded interface or its alias was counted")
+	}
+	// A stable alias follows the new kernel device number after reconnection.
+	b.stat.Rdev, alias.stat.Rdev = 4, 4
+	d.Refresh(context.Background())
+	if d.Coverage().Open != 1 || io.next != 1 {
+		t.Fatal("excluded reconnected interface opened")
+	}
+	delete(io.nodes, "composite")
+	delete(io.nodes, "stable-alias")
+	d.Refresh(context.Background())
+	if d.Coverage().Open != 1 || d.Coverage().Unavailable != 0 {
+		t.Fatal("disconnected exclusion interrupted keyboard")
+	}
+	d.Close()
+}
+
+func TestUnusableExclusionStopsCollection(t *testing.T) {
+	d, io := fixture()
+	io.add("keyboard", 1)
+	d.Refresh(context.Background())
+	io.add("invalid-exclusion", 2).stat.Mode = syscall.S_IFREG
+	d.excluded = []string{"invalid-exclusion"}
+	d.Refresh(context.Background())
+	if d.Coverage().Open != 0 || d.Coverage().Unavailable != 1 || len(io.fds) != 0 {
+		t.Fatal("unusable exclusion left input streams open")
 	}
 	d.Close()
 }
