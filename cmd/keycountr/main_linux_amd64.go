@@ -17,6 +17,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/mattn/go-isatty"
+	"golang.org/x/sys/unix"
+
 	"keycountr/internal/counter"
 	"keycountr/internal/input"
 	"keycountr/internal/storage"
@@ -34,6 +37,7 @@ func run() error {
 	// Keep the original command working; counting no longer needs an opt-in.
 	flag.Bool("prototype", false, "compatibility flag; counting is now the default")
 	duration := flag.Duration("duration", 0, "stop after this duration (default: until Ctrl+C)")
+	quiet := flag.Bool("quiet", false, "disable live collector status updates (startup, warnings, and final total remain)")
 	dataDir := flag.String("data-dir", "", "private storage directory (default: XDG_DATA_HOME/keycountr)")
 	dashboard := flag.Bool("dashboard", false, "serve saved counts on loopback without collecting input")
 	port := flag.Int("port", 8080, "dashboard loopback port (0 chooses an available port)")
@@ -121,25 +125,36 @@ func run() error {
 	}
 	fmt.Println("Counting while running, including lock screens and other sessions when device access permits.")
 	fmt.Println("Physical key-downs including modifiers; repeats and mouse buttons excluded. Ctrl+C flushes and stops. Totals persist in local SQLite.")
-	fmt.Println("If no input opens or unavailable is nonzero, run bash tools/stage1-probe.sh and see docs/STAGE1.md for access guidance.")
+	fmt.Println("If no input opens or unavailable is nonzero, run bash tools/stage1-probe.sh and see docs/INPUT.md for access guidance.")
 	devices := input.NewDevices(excluded)
 	defer devices.Close()
 	state := "starting"
 	var nextScan time.Time
 	readTick := time.NewTicker(10 * time.Millisecond)
-	display := time.NewTicker(time.Second)
+	status := statusOutput{out: os.Stdout, live: !*quiet && isatty.IsTerminal(os.Stdout.Fd()) && os.Getenv("TERM") != "dumb"}
+	status.columns = func() int {
+		if size, err := unix.IoctlGetWinsize(int(os.Stdout.Fd()), unix.TIOCGWINSZ); err == nil {
+			return int(size.Col)
+		}
+		return 80
+	}
+	var displayTick <-chan time.Time
+	if status.live {
+		display := time.NewTicker(time.Second)
+		defer display.Stop()
+		displayTick = display.C
+	}
 	flushTick := time.NewTicker(5 * time.Second)
 	defer flushTick.Stop()
 	defer readTick.Stop()
-	defer display.Stop()
-	show := func() {
+	show := func(final bool) {
 		c := devices.Coverage()
 		storageState := "ok"
 		if !storageOK {
 			storageState = "retrying"
 		}
-		fmt.Printf("total=%d state=%s keyboards=%d/%d unavailable=%d dropped=%d read_errors=%d pending=%d storage=%s\n",
-			total, state, c.Open, c.Interfaces, c.Unavailable, c.Dropped, c.ReadErrors, buffer.Pending(), storageState)
+		status.show(fmt.Sprintf("total=%d state=%s keyboards=%d/%d unavailable=%d dropped=%d read_errors=%d pending=%d storage=%s",
+			total, state, c.Open, c.Interfaces, c.Unavailable, c.Dropped, c.ReadErrors, buffer.Pending(), storageState), final)
 	}
 	finish := func(cause error) error {
 		devices.Close()
@@ -155,7 +170,7 @@ func run() error {
 			}
 		}
 		state = "stopped"
-		show()
+		show(true)
 		if len(buffer.Rows()) != 0 {
 			return errors.Join(cause, errors.New("final flush failed; pending aggregates will be lost on exit"))
 		}
@@ -169,14 +184,16 @@ func run() error {
 		case <-flushTick.C:
 			err := flush()
 			if err != nil && storageOK {
+				status.clear()
 				fmt.Fprintln(os.Stderr, "Storage flush failed; retaining pending aggregates and retrying every five seconds.")
 			}
 			if err == nil && !storageOK {
+				status.clear()
 				fmt.Fprintln(os.Stderr, "Storage writes recovered.")
 			}
 			storageOK = err == nil
-		case <-display.C:
-			show()
+		case <-displayTick:
+			show(false)
 		case <-readTick.C:
 			if ctx.Err() != nil {
 				continue

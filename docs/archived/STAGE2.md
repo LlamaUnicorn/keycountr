@@ -110,7 +110,7 @@ backups.
 
 Foreground collection and existing input access are validated on this host.
 An optional user-service template is provided at
-[../tools/keycountr.service](../tools/keycountr.service). No service was installed
+[../tools/keycountr.service](../../tools/keycountr.service). No service was installed
 or enabled as part of implementation. It starts with the graphical session,
 uses `~/.local/bin/keycountr`, sets a private umask, and stops with that session.
 Copy any validated `--exclude-device` arguments into `ExecStart` before enabling
