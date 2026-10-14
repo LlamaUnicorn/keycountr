@@ -28,15 +28,15 @@
 - [x] Add explicit interface exclusion for mirrored composite events, including aliases and reconnecting stable paths; physical selection still needs validation.
 - [x] Document the runnable stage-1 prototype workflow and known counting gaps.
 
-## Stage 2 — persist counts
+## Stage 2 — persist counts (complete)
 
-- [ ] Select SQLite driver; add schema versioning and minute-bucket migration.
-- [ ] Create private per-user data directory and database.
-- [ ] Add transactional delta flush, final flush, retry semantics, and bounded failure buffering.
-- [ ] Persist coarse collector coverage if required to label gaps accurately.
-- [ ] Test restart, minute rollover, abrupt exit, retries, and storage errors.
-- [ ] Document data location, crash-loss behavior, retention, backup, and deletion.
-- [ ] Add optional startup service after the permissions model is validated.
+- [x] Select SQLite driver; add schema versioning and minute-bucket migration.
+- [x] Create private per-user data directory and database.
+- [x] Add transactional delta flush, final flush, retry semantics, and bounded failure buffering.
+- [x] Persist coarse minute coverage and input/polling/clock issue flags; document coverage limits.
+- [x] Test restart, minute rollover, abrupt exit, retries, and storage errors.
+- [x] Document data location, crash-loss behavior, retention, backup, and deletion.
+- [x] Provide an optional user startup service and setup instructions; do not register it automatically.
 
 ## Stage 3 — show counts
 
@@ -56,6 +56,6 @@ These checks were deferred at the user's request on 2026-10-14. They do not bloc
 
 ## Next-session handoff
 
-Read [docs/STAGE1.md](STAGE1.md), [docs/README.md](README.md), and [docs/PLAN.md](PLAN.md). Stage 1 is complete for the validated setup; further hardware checks are in the backlog at the user's request. The user has a split keyboard supporting wired and Bluetooth modes. Work stopped after confirming ordinary-key accumulation between display ticks, Shift counting, exactly +1 for a letter held three seconds, mouse click/scroll exclusion, physical power-off/on recovery, and clean shutdown. The exact three-tap delta was not supplied. Power-off recorded one cumulative read error; power-on restored both interfaces and counting resumed without further read errors. Race tests, vet, shell syntax, and aggregate-output checks passed. The rebuilt binary runs without flags, accepts legacy `--prototype`, and supports repeatable `--exclude-device` paths for verified mirrors; it does not infer them automatically. Existing ordinary-user input access works on this host. Counting across lock screens and other sessions is user-approved. No dependencies were installed, input permissions changed, or services registered. Resume with Stage 2 when requested; do not repeat the backlogged hardware checks unless requested.
+Stage 2 is implemented. Read [STAGE2.md](STAGE2.md), [README.md](README.md), and [PLAN.md](PLAN.md). The CLI now restores persisted totals, saves UTC minute deltas and coarse coverage every five seconds, retries immutable batches with transactional receipts, and flushes on orderly shutdown. A private XDG data directory and per-database lock are enforced. Buffering is limited to 1440 pending minutes; exhaustion stops collection visibly. The SQLite driver is pinned in go.mod/go.sum and works without CGO. Race tests, vet, and a CGO-disabled build passed. The optional user-service template is provided but no service was installed/enabled, and input permissions were not changed. Resume with Stage 3; keep the deferred hardware checks backlogged unless requested. Stage 1 validation details remain in [STAGE1.md](STAGE1.md). Leave ignored `.codex/` and environment-managed metadata untouched.
 
 The provided `.git` directory did not function during initial setup. It now supports `git status` and diffs; no repository repair is needed for this continuation. Preserve environment-managed metadata and leave the local ignored `.codex/` directory untouched.

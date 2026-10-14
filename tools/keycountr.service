@@ -1,0 +1,13 @@
+[Unit]
+Description=Aggregate keyboard press counter
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/keycountr
+UMask=0077
+TimeoutStopSec=10
+
+[Install]
+WantedBy=graphical-session.target
