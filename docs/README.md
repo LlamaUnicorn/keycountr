@@ -2,7 +2,7 @@
 
 A small Go application for Ubuntu that counts keyboard presses without recording typed text.
 
-Status: Stage 1 is complete for the validated Linux amd64 setup. Physical key/modifier counting, repeat and mouse exclusion, keyboard power-off/on recovery, and shutdown are user-confirmed. Further split-keyboard wired/Bluetooth and multiple-keyboard checks are backlogged. Stage 2 now saves minute aggregates and coarse coverage in a private local SQLite database. Explicit interface exclusion is available for mirrored composite events. The dashboard remains Stage 3.
+Status: Stage 1 is complete for the validated Linux amd64 setup. Physical key/modifier counting, repeat and mouse exclusion, keyboard power-off/on recovery, and shutdown are user-confirmed. Further split-keyboard wired/Bluetooth and multiple-keyboard checks are backlogged. Stage 2 now saves minute aggregates and coarse coverage in a private local SQLite database. Explicit interface exclusion is available for mirrored composite events. Stage 3 provides a separate local dashboard with saved totals, charts, date ranges, and coverage labels.
 
 ## Scope
 
@@ -40,5 +40,13 @@ bash tools/stage1-probe.sh
 See [STAGE1.md](STAGE1.md) for observations, manual checks, automated tests, and known counting gaps. Existing ordinary-user device access is the chosen setup on this host; input permissions and services have not been changed. For mirrored composite events, `--exclude-device` accepts a repeatable absolute input-interface path; prefer a stable `/dev/input/by-id/` symlink. See the interface isolation workflow in [STAGE1.md](STAGE1.md) before choosing one.
 
 See [STAGE2.md](STAGE2.md) for the data location, retry/loss behavior, coverage schema, backup/deletion, and optional user-service setup. No service has been registered.
+
+After the collector has initialized the database, start the dashboard in another terminal:
+
+```sh
+./bin/keycountr --dashboard
+```
+
+Open <http://127.0.0.1:8080>. Choose dates, hour/day/week grouping, and reporting timezone; click **Apply / refresh** for fresh committed data. Ctrl+C stops the dashboard independently of collection. Use the same `--data-dir` for both processes when overriding storage. See [STAGE3.md](STAGE3.md) for coverage, range semantics, the aggregate API, and validation.
 
 See [PLAN.md](PLAN.md) for design decisions and [TODO.md](TODO.md) for the implementation checklist.

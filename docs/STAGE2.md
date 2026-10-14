@@ -60,7 +60,7 @@ These are estimates of coverage, not proof that every physical event arrived.
 Partial startup/shutdown minutes have partial durations. Missing rows describe
 unobserved periods, rather than zero activity. Wall-clock changes can overlap
 coverage; durations are capped and affected minutes retain issue flags. The
-future dashboard should mark incomplete or impaired coverage, including the
+dashboard marks incomplete or impaired coverage, including the
 latest uncommitted interval. Coverage itself shares the crash-loss window.
 
 ## Flush, retries, and loss window
@@ -99,7 +99,7 @@ reopen the database with the collector, then stop successfully before copying.
 Restore the database into a private directory while the collector is stopped;
 keep directory mode 0700 and files mode 0600.
 
-To erase history, first stop the collector and any future dashboard. Delete
+To erase history, first stop the collector and any dashboard. Delete
 `counts.sqlite3` and any `counts.sqlite3-journal`, `counts.sqlite3-wal`, and
 `counts.sqlite3-shm` files from the selected data directory. The next start
 creates a fresh schema and starts at zero. Delete backups separately. Ordinary

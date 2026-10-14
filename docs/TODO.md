@@ -38,14 +38,14 @@
 - [x] Document data location, crash-loss behavior, retention, backup, and deletion.
 - [x] Provide an optional user startup service and setup instructions; do not register it automatically.
 
-## Stage 3 — show counts
+## Stage 3 — show counts (complete)
 
-- [ ] Add loopback-only HTTP server and range/granularity queries.
-- [ ] Implement timezone-aware hour/day/week aggregation and Monday week starts.
-- [ ] Add totals, charts, date-range controls, timezone label, and data freshness.
-- [ ] Label missing collection and stopped periods accurately.
-- [ ] Test range boundaries, DST, empty data, totals, and loopback binding.
-- [ ] Document dashboard startup and stop commands.
+- [x] Add loopback-only HTTP server and range/granularity queries.
+- [x] Implement timezone-aware hour/day/week aggregation and Monday week starts.
+- [x] Add totals, charts, date-range controls, timezone label, and data freshness.
+- [x] Label missing collection and stopped periods accurately, without guessing why coverage is absent.
+- [x] Test range boundaries, DST, empty data, totals, and loopback binding.
+- [x] Document dashboard startup and stop commands.
 
 ## Hardware validation backlog
 
@@ -56,6 +56,6 @@ These checks were deferred at the user's request on 2026-10-14. They do not bloc
 
 ## Next-session handoff
 
-Stage 2 is implemented. Read [STAGE2.md](STAGE2.md), [README.md](README.md), and [PLAN.md](PLAN.md). The CLI now restores persisted totals, saves UTC minute deltas and coarse coverage every five seconds, retries immutable batches with transactional receipts, and flushes on orderly shutdown. A private XDG data directory and per-database lock are enforced. Buffering is limited to 1440 pending minutes; exhaustion stops collection visibly. The SQLite driver is pinned in go.mod/go.sum and works without CGO. Race tests, vet, and a CGO-disabled build passed. The optional user-service template is provided but no service was installed/enabled, and input permissions were not changed. Resume with Stage 3; keep the deferred hardware checks backlogged unless requested. Stage 1 validation details remain in [STAGE1.md](STAGE1.md). Leave ignored `.codex/` and environment-managed metadata untouched.
+Stages 1–3 are implemented. Read [STAGE3.md](STAGE3.md), [STAGE2.md](STAGE2.md), and [README.md](README.md). Run the collector normally and start `./bin/keycountr --dashboard` separately for a read-only dashboard at `http://127.0.0.1:8080`. Reports support date ranges, timezone-aware hour/day/Monday-week grouping, committed totals, and coverage labels. Refresh is manual; latest saved minute is not an exact write timestamp or collector-liveness signal. Schema version 1 is unchanged. Race tests, vet, and a CGO-disabled build passed, including real loopback HTTP and concurrent reader/collector tests. Browser layout has not been manually verified. No service was installed/enabled and input permissions were not changed. Keep hardware checks backlogged unless requested. Leave ignored `.codex/` and environment-managed metadata untouched.
 
 The provided `.git` directory did not function during initial setup. It now supports `git status` and diffs; no repository repair is needed for this continuation. Preserve environment-managed metadata and leave the local ignored `.codex/` directory untouched.

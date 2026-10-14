@@ -20,6 +20,7 @@ import (
 	"keycountr/internal/counter"
 	"keycountr/internal/input"
 	"keycountr/internal/storage"
+	"keycountr/internal/web"
 )
 
 func main() {
@@ -34,6 +35,8 @@ func run() error {
 	flag.Bool("prototype", false, "compatibility flag; counting is now the default")
 	duration := flag.Duration("duration", 0, "stop after this duration (default: until Ctrl+C)")
 	dataDir := flag.String("data-dir", "", "private storage directory (default: XDG_DATA_HOME/keycountr)")
+	dashboard := flag.Bool("dashboard", false, "serve saved counts on loopback without collecting input")
+	port := flag.Int("port", 8080, "dashboard loopback port (0 chooses an available port)")
 	var excluded []string
 	flag.Func("exclude-device", "exclude an input interface by absolute /dev/input path (repeatable; prefer by-id)", func(path string) error {
 		path = filepath.Clean(path)
@@ -50,11 +53,6 @@ func run() error {
 	if os.Getuid() == 0 {
 		return errors.New("run as the desktop owner, without sudo")
 	}
-	for _, tool := range []string{"udevadm"} {
-		if _, err := exec.LookPath(tool); err != nil {
-			return fmt.Errorf("required device tool unavailable: %s", tool)
-		}
-	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	if *duration > 0 {
@@ -62,11 +60,7 @@ func run() error {
 		ctx, cancel = context.WithTimeout(ctx, *duration)
 		defer cancel()
 	}
-	unlock, err := instanceLock()
-	if err != nil {
-		return err
-	}
-	defer unlock()
+	var err error
 	dir := *dataDir
 	if dir == "" {
 		dir, err = storage.DataDir()
@@ -74,6 +68,20 @@ func run() error {
 			return err
 		}
 	}
+	if *dashboard {
+		if len(excluded) != 0 {
+			return errors.New("--exclude-device applies only to collection")
+		}
+		return web.Run(ctx, dir, *port, os.Stdout)
+	}
+	if _, err := exec.LookPath("udevadm"); err != nil {
+		return errors.New("required device tool unavailable: udevadm")
+	}
+	unlock, err := instanceLock()
+	if err != nil {
+		return err
+	}
+	defer unlock()
 	store, err := storage.Open(ctx, dir)
 	if err != nil {
 		return err

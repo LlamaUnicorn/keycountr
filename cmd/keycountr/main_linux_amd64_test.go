@@ -30,9 +30,34 @@ func TestCounterProcess(t *testing.T) {
 	if os.Getenv("KEYCOUNTR_TEST_LEGACY") == "excluded" {
 		os.Args = append(os.Args, "--exclude-device=/dev/input/by-id/keycountr-test-excluded")
 	}
+	if os.Getenv("KEYCOUNTR_TEST_LEGACY") == "dashboard" {
+		os.Args = append(os.Args, "--dashboard", "--port=0")
+	}
 	flag.CommandLine = flag.NewFlagSet("keycountr", flag.ExitOnError)
 	main()
 	os.Exit(0)
+}
+
+func TestDashboardWithoutInputToolsOrRuntimeLock(t *testing.T) {
+	if os.Getuid() == 0 {
+		t.Skip("the CLI runs as an ordinary user")
+	}
+	home := t.TempDir()
+	store, err := storage.Open(context.Background(), filepath.Join(home, "keycountr"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close() // The dashboard must coexist with this collector lock.
+	t.Setenv("XDG_DATA_HOME", home)
+	t.Setenv("XDG_RUNTIME_DIR", "/nonexistent")
+	t.Setenv("PATH", "")
+	t.Setenv("KEYCOUNTR_TEST_PROCESS", "yes")
+	t.Setenv("KEYCOUNTR_TEST_LEGACY", "dashboard")
+	cmd := exec.Command(os.Args[0], "-test.run=^TestCounterProcess$")
+	output, err := cmd.CombinedOutput()
+	if err != nil || !bytes.Contains(output, []byte("Dashboard: http://127.0.0.1:")) || bytes.Contains(output, []byte("state=counting")) {
+		t.Fatalf("dashboard failed: %v %s", err, output)
+	}
 }
 
 func TestCountingWithoutSessionServices(t *testing.T) {
