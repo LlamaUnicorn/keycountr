@@ -49,7 +49,7 @@ To collect and serve the dashboard in one process:
 ./bin/keycountr --with-dashboard
 ```
 
-Open <http://127.0.0.1:8080>. Ctrl+C stops both components and flushes pending
+Open <http://127.0.0.1:49371>. Ctrl+C stops both components and flushes pending
 aggregates. Use `--port=0` to choose a free port. If the dashboard cannot start,
 collection does not begin; a later server failure stops collection with a final
 flush and an error. Collector-only remains the default. No browser opens automatically.
@@ -60,6 +60,6 @@ Alternatively, after the collector has initialized the database, start the dashb
 ./bin/keycountr --dashboard
 ```
 
-Open <http://127.0.0.1:8080>. Choose dates, hour/day/week grouping, and reporting timezone; click **Apply / refresh** for fresh committed data. Ctrl+C stops the dashboard independently of collection. Use the same `--data-dir` for both processes when overriding storage. See [DASHBOARD.md](DASHBOARD.md) for coverage, range semantics, the aggregate API, and coverage limits.
+Open <http://127.0.0.1:49371>. Choose dates, hour/day/week grouping, and reporting timezone; click **Apply / refresh** for fresh committed data. Ctrl+C stops the dashboard independently of collection. Use the same `--data-dir` for both processes when overriding storage. See [DASHBOARD.md](DASHBOARD.md) for coverage, range semantics, the aggregate API, and coverage limits.
 
 See [TODO.md](TODO.md) for open work and the [archive](archived/README.md) for completed plans and validation records.

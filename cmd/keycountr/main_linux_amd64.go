@@ -42,7 +42,7 @@ func run() error {
 	dataDir := flag.String("data-dir", "", "private storage directory (default: XDG_DATA_HOME/keycountr)")
 	withDashboard := flag.Bool("with-dashboard", false, "collect input and serve saved counts on loopback in one process")
 	dashboard := flag.Bool("dashboard", false, "serve saved counts on loopback without collecting input")
-	port := flag.Int("port", 8080, "dashboard loopback port (0 chooses an available port)")
+	port := flag.Int("port", 49371, "dashboard loopback port (0 chooses an available port)")
 	var excluded []string
 	flag.Func("exclude-device", "exclude an input interface by absolute /dev/input path (repeatable; prefer by-id)", func(path string) error {
 		path = filepath.Clean(path)

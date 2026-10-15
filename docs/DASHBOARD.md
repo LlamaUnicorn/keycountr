@@ -34,7 +34,7 @@ In another terminal run:
 ./bin/keycountr --dashboard
 ```
 
-With `--dashboard`, open <http://127.0.0.1:8080>. Ctrl+C or SIGTERM stops the dashboard independently
+With `--dashboard`, open <http://127.0.0.1:49371>. Ctrl+C or SIGTERM stops the dashboard independently
 of the collector. With the collector stopped, the dashboard shows saved history.
 It requires an existing private database initialized by the collector. It never
 creates a directory, acquires the collector lock, migrates a schema, or writes
@@ -109,7 +109,7 @@ no coverage remain visible.
 The same parameters work on `GET /api/report`, for example:
 
 ```text
-http://127.0.0.1:8080/api/report?start=2026-10-01&end=2026-10-15&granularity=day&timezone=Asia%2FRiyadh
+http://127.0.0.1:49371/api/report?start=2026-10-01&end=2026-10-15&granularity=day&timezone=Asia%2FRiyadh
 ```
 
 JSON contains range boundaries, timezone, grouping, query timestamp, latest saved
