@@ -10,6 +10,8 @@ The binary supports collector-only, dashboard-only, and explicit combined (`--wi
 - [ ] Discuss optional browser opening for combined mode, with an opt-out for headless/service use; opening a page must not be required for collection.
 - [ ] Discuss a single optional user service running combined mode, so no terminal needs to remain open. Reuse the existing service documentation; installation/enabling remains an explicit user action.
 - [ ] Discuss optional dashboard auto-refresh with a modest interval, preserving selected filters and distinguishing saved-data freshness from collector liveness.
+- [ ] Discuss running the app in the tray bar with a popup tooltip showing current count. Click will open up a menu with 'dashboard' and 'quit'.
+- [ ] 
 
 ## Hardware validation backlog
 
