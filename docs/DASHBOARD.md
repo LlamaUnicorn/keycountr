@@ -11,21 +11,41 @@ From the repository root:
 go build -buildvcs=false -o bin/keycountr ./cmd/keycountr
 ```
 
-Run the collector normally in one terminal (or use the previously configured
-optional user service). In another terminal run:
+For a single process that collects input and serves the dashboard:
+
+```sh
+./bin/keycountr --with-dashboard
+```
+
+This initializes storage before starting the dashboard, then begins collection.
+Ctrl+C, SIGTERM, or `--duration` stops both components and flushes pending
+aggregates. The dashboard uses its own read-only database connection and shows
+only committed data. If its reader or listener cannot start, collection does not
+begin and the command exits with an error. A later HTTP server failure cancels
+collection, performs the final flush, and exits with an error. A collector error
+also stops the dashboard. The database and collector locks remain held until both
+components stop. The browser does not open automatically.
+
+Collector-only remains the default. For independent processes, run the collector
+normally in one terminal (or use the previously configured optional user service).
+In another terminal run:
 
 ```sh
 ./bin/keycountr --dashboard
 ```
 
-Open <http://127.0.0.1:8080>. Ctrl+C or SIGTERM stops the dashboard independently
+With `--dashboard`, open <http://127.0.0.1:8080>. Ctrl+C or SIGTERM stops the dashboard independently
 of the collector. With the collector stopped, the dashboard shows saved history.
 It requires an existing private database initialized by the collector. It never
 creates a directory, acquires the collector lock, migrates a schema, or writes
 counts. It does not use input devices, `udevadm`, or the runtime lock directory.
 Run as your ordinary user, without sudo.
 
-Both commands must select the same data directory. For a custom location:
+`--dashboard` and `--with-dashboard` are mutually exclusive. Both accept `--port`
+and `--data-dir`; `--quiet` suppresses live collector status in combined mode but
+keeps the dashboard URL and final status visible.
+
+Independent processes must select the same data directory. For a custom location:
 
 ```sh
 ./bin/keycountr --dashboard --data-dir=/absolute/private/directory --port=8081

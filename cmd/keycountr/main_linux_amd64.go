@@ -8,6 +8,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -39,6 +40,7 @@ func run() error {
 	duration := flag.Duration("duration", 0, "stop after this duration (default: until Ctrl+C)")
 	quiet := flag.Bool("quiet", false, "disable live collector status updates (startup, warnings, and final total remain)")
 	dataDir := flag.String("data-dir", "", "private storage directory (default: XDG_DATA_HOME/keycountr)")
+	withDashboard := flag.Bool("with-dashboard", false, "collect input and serve saved counts on loopback in one process")
 	dashboard := flag.Bool("dashboard", false, "serve saved counts on loopback without collecting input")
 	port := flag.Int("port", 8080, "dashboard loopback port (0 chooses an available port)")
 	var excluded []string
@@ -53,6 +55,12 @@ func run() error {
 	flag.Parse()
 	if flag.NArg() != 0 || *duration < 0 {
 		return errors.New("unexpected arguments or negative duration")
+	}
+	if *dashboard && *withDashboard {
+		return errors.New("--dashboard and --with-dashboard are mutually exclusive")
+	}
+	if (*dashboard || *withDashboard) && (*port < 0 || *port > 65535) {
+		return errors.New("dashboard port must be 0–65535")
 	}
 	if os.Getuid() == 0 {
 		return errors.New("run as the desktop owner, without sudo")
@@ -91,6 +99,36 @@ func run() error {
 		return err
 	}
 	defer store.Close()
+	collectFn := func(ctx context.Context) error {
+		return collect(ctx, store, excluded, *quiet)
+	}
+	if *withDashboard {
+		return runCombined(ctx, dir, *port, os.Stdout, collectFn)
+	}
+	return collectFn(ctx)
+}
+
+// Start serving before opening input. Either component stopping cancels the
+// other; collect completes its final flush before the writer is closed by run.
+func runCombined(ctx context.Context, dir string, port int, output io.Writer, collect func(context.Context) error) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	wait, err := web.Start(ctx, dir, port, output)
+	if err != nil {
+		return err
+	}
+	done := make(chan error, 1)
+	go func() {
+		err := wait()
+		cancel()
+		done <- err
+	}()
+	collectErr := collect(ctx)
+	cancel()
+	return errors.Join(collectErr, <-done)
+}
+
+func collect(ctx context.Context, store *storage.Store, excluded []string, quiet bool) error {
 	total, err := store.Total(ctx)
 	if err != nil {
 		return err
@@ -131,7 +169,7 @@ func run() error {
 	state := "starting"
 	var nextScan time.Time
 	readTick := time.NewTicker(10 * time.Millisecond)
-	status := statusOutput{out: os.Stdout, live: !*quiet && isatty.IsTerminal(os.Stdout.Fd()) && os.Getenv("TERM") != "dumb"}
+	status := statusOutput{out: os.Stdout, live: !quiet && isatty.IsTerminal(os.Stdout.Fd()) && os.Getenv("TERM") != "dumb"}
 	status.columns = func() int {
 		if size, err := unix.IoctlGetWinsize(int(os.Stdout.Fd()), unix.TIOCGWINSZ); err == nil {
 			return int(size.Col)

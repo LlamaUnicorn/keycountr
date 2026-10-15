@@ -1,7 +1,8 @@
 # Completed work archive
 
-Historical records from stages 1–3 and the terminal-output cleanup, completed on 2026-10-14. These describe behavior at each stage; use the [current usage guide](../README.md) for present behavior.
+Historical records from stages 1–3, the terminal-output cleanup, and later completed work. These describe behavior at each stage; use the [current usage guide](../README.md) for present behavior.
 
+- [Combined collector and dashboard mode](COMBINED_MODE.md)
 - [Original implementation plan](PLAN.md)
 - [Stage 1: input counting and hardware validation](STAGE1.md)
 - [Stage 2: persistence and lifecycle](STAGE2.md)

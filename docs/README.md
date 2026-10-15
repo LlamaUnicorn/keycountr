@@ -43,7 +43,18 @@ See [INPUT.md](INPUT.md) for device access, manual checks, and known counting ga
 
 See [STORAGE.md](STORAGE.md) for the data location, retry/loss behavior, coverage schema, backup/deletion, and optional user-service setup. No service has been registered.
 
-After the collector has initialized the database, start the dashboard in another terminal:
+To collect and serve the dashboard in one process:
+
+```sh
+./bin/keycountr --with-dashboard
+```
+
+Open <http://127.0.0.1:8080>. Ctrl+C stops both components and flushes pending
+aggregates. Use `--port=0` to choose a free port. If the dashboard cannot start,
+collection does not begin; a later server failure stops collection with a final
+flush and an error. Collector-only remains the default. No browser opens automatically.
+
+Alternatively, after the collector has initialized the database, start the dashboard in another terminal:
 
 ```sh
 ./bin/keycountr --dashboard

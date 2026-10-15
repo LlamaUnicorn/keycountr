@@ -103,18 +103,40 @@ func Listen(port int) (net.Listener, error) {
 }
 
 func Run(ctx context.Context, dir string, port int, output io.Writer) error {
-	reader, err := storage.OpenReader(ctx, dir)
+	wait, err := Start(ctx, dir, port, output)
 	if err != nil {
 		return err
 	}
-	defer reader.Close()
+	return wait()
+}
+
+// Start opens the read-only database and listener before returning. Cancel ctx
+// to stop serving, then call the returned wait function exactly once to join
+// shutdown and release the reader. Startup output is written synchronously.
+func Start(ctx context.Context, dir string, port int, output io.Writer) (wait func() error, err error) {
+	reader, err := storage.OpenReader(ctx, dir)
+	if err != nil {
+		return nil, err
+	}
 	listener, err := Listen(port)
 	if err != nil {
-		return errors.New("cannot listen on dashboard loopback port")
+		reader.Close()
+		return nil, errors.New("cannot listen on dashboard loopback port")
 	}
-	defer listener.Close()
 	server := &http.Server{Handler: Handler(reader, time.Now), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 10 * time.Second, IdleTimeout: 30 * time.Second, MaxHeaderBytes: 16 << 10}
-	fmt.Fprintf(output, "Dashboard: http://%s — committed aggregates only; Ctrl+C stops the dashboard.\n", listener.Addr())
+	fmt.Fprintf(output, "Dashboard: http://%s — committed aggregates only; Ctrl+C stops this process.\n", listener.Addr())
+	finished := make(chan error, 1)
+	go func() {
+		err := serve(ctx, server, listener)
+		listener.Close()
+		reader.Close()
+		finished <- err
+	}()
+	return func() error { return <-finished }, nil
+}
+
+func serve(ctx context.Context, server *http.Server, listener net.Listener) error {
+	defer server.Close()
 	done := make(chan error, 1)
 	go func() { done <- server.Serve(listener) }()
 	select {

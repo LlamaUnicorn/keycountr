@@ -6,15 +6,19 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"errors"
 	"flag"
 	"keycountr/internal/counter"
 	"keycountr/internal/storage"
+	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
+	"time"
 )
 
 // Run the real CLI in a child process so flag parsing and shutdown are tested
@@ -32,6 +36,9 @@ func TestCounterProcess(t *testing.T) {
 	}
 	if os.Getenv("KEYCOUNTR_TEST_LEGACY") == "dashboard" {
 		os.Args = append(os.Args, "--dashboard", "--port=0")
+	}
+	if os.Getenv("KEYCOUNTR_TEST_LEGACY") == "combined" {
+		os.Args = append(os.Args, "--with-dashboard", "--port=0", "--quiet")
 	}
 	flag.CommandLine = flag.NewFlagSet("keycountr", flag.ExitOnError)
 	main()
@@ -96,7 +103,7 @@ func TestCountingWithoutSessionServices(t *testing.T) {
 	t.Setenv("XDG_SESSION_ID", "")
 	t.Setenv("DBUS_SESSION_BUS_ADDRESS", "unix:path=/nonexistent")
 	t.Setenv("KEYCOUNTR_TEST_PROCESS", "yes")
-	for _, legacy := range []string{"no", "yes", "excluded"} {
+	for _, legacy := range []string{"no", "yes", "excluded", "combined"} {
 		t.Run("legacy="+legacy, func(t *testing.T) {
 			t.Setenv("KEYCOUNTR_TEST_LEGACY", legacy)
 			cmd := exec.Command(os.Args[0], "-test.run=^TestCounterProcess$")
@@ -199,5 +206,91 @@ func TestFinalFlushFailureIsVisible(t *testing.T) {
 	output, err := cmd.CombinedOutput()
 	if err == nil || !bytes.Contains(output, []byte("final flush failed")) || !bytes.Contains(output, []byte("storage=retrying")) {
 		t.Fatalf("final write failure hidden: %v %s", err, output)
+	}
+}
+
+// Exercise combined lifecycle with synthetic aggregates and no input discovery.
+func TestCombinedLifecycle(t *testing.T) {
+	for _, reason := range []string{"duration", "collector failure"} {
+		t.Run(reason, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			dir := filepath.Join(t.TempDir(), "new-database")
+			store, err := storage.Open(ctx, dir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer store.Close()
+			var output bytes.Buffer
+			var address string
+			failure := errors.New("synthetic collector failure")
+			err = runCombined(ctx, dir, 0, &output, func(ctx context.Context) error {
+				address = strings.Fields(output.String())[1]
+				client := http.Client{Timeout: time.Second}
+				response, err := client.Get(address + "/api/report?timezone=UTC")
+				if err != nil {
+					return err
+				}
+				response.Body.Close()
+				if response.StatusCode != http.StatusOK {
+					return errors.New("dashboard unavailable during collection")
+				}
+				if reason == "duration" {
+					// A canceled parent has the same path as a deadline or signal.
+					cancel()
+					select {
+					case <-ctx.Done():
+					case <-time.After(time.Second):
+						return errors.New("collector not canceled")
+					}
+				}
+				// Like the real final flush, this must work after cancellation.
+				if err := store.Apply(context.Background(), "final", []counter.Minute{{Start: 1800000000, Count: 7}}); err != nil {
+					return err
+				}
+				if reason == "collector failure" {
+					return failure
+				}
+				return nil
+			})
+			if reason == "collector failure" {
+				if !errors.Is(err, failure) {
+					t.Fatalf("lost collector error: %v", err)
+				}
+			} else if err != nil {
+				t.Fatal(err)
+			}
+			total, err := store.Total(context.Background())
+			if err != nil || total != 7 {
+				t.Fatalf("final flush: %d %v", total, err)
+			}
+			client := http.Client{Timeout: time.Second}
+			if response, err := client.Get(address); err == nil {
+				response.Body.Close()
+				t.Fatal("dashboard still serving after collector exit")
+			}
+		})
+	}
+}
+
+func TestCombinedListenerFailureDoesNotCollect(t *testing.T) {
+	ctx := context.Background()
+	dir := filepath.Join(t.TempDir(), "data")
+	store, err := storage.Open(ctx, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	listener, err := net.Listen("tcp4", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+	err = runCombined(ctx, dir, listener.Addr().(*net.TCPAddr).Port, &bytes.Buffer{}, func(context.Context) error {
+		t.Fatal("collection started after listener failure")
+		return nil
+	})
+	if err == nil || !strings.Contains(err.Error(), "cannot listen") {
+		t.Fatalf("listener failure hidden: %v", err)
 	}
 }

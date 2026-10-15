@@ -4,9 +4,9 @@ Stages 1–3 and the terminal-output cleanup are complete. See the [archive](arc
 
 ## Application lifecycle backlog — separate sessions
 
-The existing binary already supports collector-only and dashboard-only modes, running as separate processes. The following options are deferred for discussion and implementation in future sessions (2026-10-14).
+The binary supports collector-only, dashboard-only, and explicit combined (`--with-dashboard`) modes. See the [combined-mode record](archived/COMBINED_MODE.md). The following options are deferred for discussion and implementation in future sessions (2026-10-14).
 
-- [ ] Add an explicit combined mode (for example `--with-dashboard`) that collects and serves the dashboard in one process. Keep collector-only and read-only dashboard-only modes. Initialize storage before serving; share cancellation, flush on shutdown, and define behavior if the HTTP listener fails. Keep loopback binding and read-only report access. Decide whether combined mode should eventually become the default.
+- [ ] Decide whether combined mode should eventually become the default; collector-only is still the default.
 - [ ] Discuss optional browser opening for combined mode, with an opt-out for headless/service use; opening a page must not be required for collection.
 - [ ] Discuss a single optional user service running combined mode, so no terminal needs to remain open. Reuse the existing service documentation; installation/enabling remains an explicit user action.
 - [ ] Discuss optional dashboard auto-refresh with a modest interval, preserving selected filters and distinguishing saved-data freshness from collector liveness.
@@ -26,4 +26,4 @@ These checks were deferred at the user's request on 2026-10-14. They do not bloc
 
 ## Next-session handoff
 
-The collector and read-only dashboard currently run as separate processes from the same binary. Reports use saved data and manual refresh; combined mode is not implemented. Schema version 1 remains unchanged. The collector reuses one live terminal line; `--quiet` and redirected output omit periodic status. No service has been installed or enabled, and input permissions have not been changed. Keep hardware validation deferred unless requested. Follow [AGENTS.md](../AGENTS.md) for project constraints and checks.
+The collector and read-only dashboard can run separately or together with `--with-dashboard`. Combined mode initializes storage first, cancels both components when either stops, and flushes on shutdown. Dashboard startup failure prevents collection; later server failure stops collection and returns an error after the final flush. Reports still use saved data and manual refresh. Schema version 1 remains unchanged. The collector reuses one live terminal line; `--quiet` and redirected output omit periodic status. No service has been installed or enabled, and input permissions have not been changed. Keep hardware validation deferred unless requested. Follow [AGENTS.md](../AGENTS.md) for project constraints and checks.
