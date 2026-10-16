@@ -11,8 +11,12 @@ go build -buildvcs=false -o bin/keycountr ./cmd/keycountr
 ./bin/keycountr
 ```
 
-The printed `total` includes all previously committed counts plus this process's
-new presses. `pending` is the number of presses awaiting a confirmed commit.
+The terminal shows `today`, `yesterday`, and `total` first. Daily counts use the
+machine's local calendar, include saved history and pending presses, and roll over
+at local midnight without restarting. The printed `total` includes all previously
+committed counts plus this process's new presses. Daily values show `?` if their
+saved counts cannot be read; this does not reset the counts. Daily zero counts
+alone do not establish collection coverage. `pending` is the number of presses awaiting a confirmed commit.
 `storage=ok` means the latest write succeeded (or no write has been attempted);
 `storage=retrying` means the latest write failed. The original input diagnostics
 and `--prototype`, `--duration`, and repeatable `--exclude-device` flags remain.

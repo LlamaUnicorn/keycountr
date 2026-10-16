@@ -214,6 +214,20 @@ func (s *Store) Total(ctx context.Context) (uint64, error) {
 	return total, nil
 }
 
+// DailyTotals reads both calendar ranges and the retry receipt in one snapshot.
+// The receipt lets live status avoid counting a committed retry batch twice.
+func (s *Store) DailyTotals(ctx context.Context, yesterday, today, tomorrow int64) (previous, current uint64, receipt string, err error) {
+	err = s.db.QueryRowContext(ctx, `SELECT
+ coalesce(sum(CASE WHEN bucket_start < ? THEN count ELSE 0 END), 0),
+ coalesce(sum(CASE WHEN bucket_start >= ? THEN count ELSE 0 END), 0),
+ coalesce((SELECT last_batch FROM collector_state WHERE singleton = 1), '')
+ FROM minute_counts WHERE bucket_start >= ? AND bucket_start < ?`, today, today, yesterday, tomorrow).Scan(&previous, &current, &receipt)
+	if err != nil {
+		err = errors.New("cannot read daily totals")
+	}
+	return
+}
+
 func (s *Store) Close() error {
 	var err error
 	if s.db != nil {

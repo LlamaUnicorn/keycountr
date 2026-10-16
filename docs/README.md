@@ -27,7 +27,7 @@ go build -buildvcs=false -o bin/keycountr ./cmd/keycountr
 ./bin/keycountr
 ```
 
-In an interactive terminal, the counter updates one status line once per second. Long live status lines are clipped to fit the terminal width; the final status is complete. Use `./bin/keycountr --quiet` to disable live updates. Redirected output, user-service logs, and `TERM=dumb` automatically omit live updates. Startup messages, storage warnings, and the final total remain visible in all modes. Quiet mode does not change collection or saving.
+In an interactive terminal, the counter updates one status line once per second, starting with `today`, `yesterday`, and the all-time `total`. Daily counts include saved and pending presses and roll over at midnight in the machine's local timezone. Long live status lines are clipped to fit the terminal width; the final status is complete. Use `./bin/keycountr --quiet` to disable live updates. Redirected output, user-service logs, and `TERM=dumb` automatically omit live updates. Startup messages, storage warnings, and the final counts remain visible in all modes. Quiet mode does not change collection or saving.
 
 Wait for `state=counting` in the live display, then press keys, hold a key to test repeats, and click the mouse. Ctrl+C flushes pending aggregates, prints the final total, and stops. Totals include previously committed counts and persist across restarts. `pending` reports uncommitted presses; `storage=retrying` signals a failed write. Writes occur every five seconds. The previous `--prototype` flag is still accepted for compatibility; no flags are required to count.
 
