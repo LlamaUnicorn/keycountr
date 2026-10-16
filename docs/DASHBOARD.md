@@ -69,7 +69,10 @@ hour/day/week grouping, and a timezone such as `Asia/Riyadh` or `Europe/Berlin`.
 to load a fresh consistent snapshot; the page does not auto-refresh. Cards and
 table rows use a compact layout. Date range help, explanations of the totals, and
 saved-data/coverage notes are collapsed by default; click their headings or use
-Enter/Space while focused to expand them.
+Enter/Space while focused to expand them. The dashboard follows the browser or
+system light/dark theme preference, including form controls and charts. Dark mode
+uses a higher-contrast Gruvbox palette with a dark charcoal page, warm gray cards,
+bright cream text, and yellow accents.
 
 Date fields are blank by default: From defaults to six calendar days before
 today and Until to tomorrow in the reporting timezone. Each page reload or
