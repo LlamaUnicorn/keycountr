@@ -75,6 +75,16 @@ latest seven days, including today. Explicit dates remain fixed across refreshes
 either boundary can be set independently. Clear a date to restore its moving
 default. The effective range is shown below the form. Range limits still apply.
 
+Summary cards show today's saved presses, the previous recorded day with its
+date, and the average of the last seven recorded days before today. They use
+the selected reporting timezone and all saved history independently of the date
+filters. Days without presses (including coverage-only days) are skipped. Today
+is excluded from the average; with fewer than seven earlier recorded days, the
+average uses the available days and displays their number. With no earlier days,
+the comparison and average show “No earlier recorded days.” These counts may
+come from days with incomplete coverage. The terminal uses the same definitions,
+in the machine's local timezone, and also includes pending presses.
+
 - Only committed data is shown, including the saved part of the current minute.
   The normal save delay is five seconds; retries can extend it. All-time totals
   cover the entire database independently of the selected range.
@@ -122,6 +132,9 @@ http://127.0.0.1:49371/api/report?start=2026-10-01&end=2026-10-15&granularity=da
 JSON contains range boundaries, timezone, grouping, query timestamp, latest saved
 minute, range/all-time totals, and bucket boundaries, labels, counts, durations,
 issue flags and status. Counts, coverage and totals use one SQLite read transaction.
+The `activity` object contains `today`, `previous` (a `date` and `count`, or null),
+`average` (or null), and `days` (the number of earlier days averaged, from 0 to 7).
+These summary values share the same read transaction as the report.
 No raw events, key codes, device or batch identifiers are exposed. Invalid queries
 return 400; failed storage reads return 503.
 

@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"keycountr/internal/counter"
 )
@@ -21,7 +22,7 @@ func TestReaderWithActiveCollector(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer reader.Close()
-	snapshot, err := reader.Snapshot(ctx, 1800000000, 1800000120)
+	snapshot, err := reader.Snapshot(ctx, 1800000000, 1800000120, time.Unix(1800000120, 0))
 	if err != nil || snapshot.Total != 16 || len(snapshot.Minutes) != 2 || snapshot.Minutes[0].Count != 7 || snapshot.Minutes[1].Count != 0 || snapshot.LatestMinute == nil || *snapshot.LatestMinute != 1800000120 {
 		t.Fatal(snapshot, err)
 	}
@@ -31,7 +32,7 @@ func TestReaderWithActiveCollector(t *testing.T) {
 	if err := s.Apply(ctx, "next", []counter.Minute{{Start: 1800000000, Count: 3}}); err != nil {
 		t.Fatal(err)
 	}
-	snapshot, err = reader.Snapshot(ctx, 1800000000, 1800000120)
+	snapshot, err = reader.Snapshot(ctx, 1800000000, 1800000120, time.Unix(1800000120, 0))
 	if err != nil || snapshot.Total != 19 || snapshot.Minutes[0].Count != 10 {
 		t.Fatal(snapshot, err)
 	}

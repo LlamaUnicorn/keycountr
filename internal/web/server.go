@@ -19,10 +19,17 @@ import (
 
 //go:embed dashboard.html
 var page string
-var dashboard = template.Must(template.New("dashboard").Parse(page))
+var dashboard = template.Must(template.New("dashboard").Funcs(template.FuncMap{
+	"average": func(value *float64) string {
+		if value == nil {
+			return "—"
+		}
+		return fmt.Sprintf("%.1f", *value)
+	},
+}).Parse(page))
 
 type Source interface {
-	Snapshot(context.Context, int64, int64) (storage.Snapshot, error)
+	Snapshot(context.Context, int64, int64, time.Time) (storage.Snapshot, error)
 }
 
 func Handler(source Source, now func() time.Time) http.Handler {
@@ -46,7 +53,7 @@ func Handler(source Source, now func() time.Time) http.Handler {
 		}
 		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
 		defer cancel()
-		snapshot, err := source.Snapshot(ctx, q.Start.Unix(), q.End.Unix())
+		snapshot, err := source.Snapshot(ctx, q.Start.Unix(), q.End.Unix(), current.In(q.Location))
 		if err != nil {
 			http.Error(w, "Saved data unavailable; retry or check collector storage.", http.StatusServiceUnavailable)
 			return

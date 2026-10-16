@@ -11,12 +11,17 @@ go build -buildvcs=false -o bin/keycountr ./cmd/keycountr
 ./bin/keycountr
 ```
 
-The terminal shows `today`, `previous`, and `total` first. `previous` compares today
+The terminal shows `today`, `previous`, `total`, and `avg7` first. `previous` compares today
 with the most recent earlier local day with recorded presses, skipping days without
 presses, including coverage-only days. Its date appears next to the count, for
 example `previous=14540(2026-10-16)`; `previous=none` means no earlier day has
 recorded presses. Daily counts use the machine's local calendar, include saved
 history and pending presses, and roll over at local midnight without restarting.
+`avg7` averages the latest seven earlier days with presses, excluding today and
+skipping days without presses. For example, `avg7=1234.5(7d)` uses seven days;
+with less history it uses the available days and shows their number. It shows
+`none` with no earlier recorded days and `?` if saved data cannot be read.
+Pending presses from earlier days are included without duplicating retry batches.
 The printed `total` includes all previously
 committed counts plus this process's new presses. Daily values show `?` if their
 saved counts cannot be read; this does not reset the counts. Daily zero counts

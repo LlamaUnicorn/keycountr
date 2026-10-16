@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	"keycountr/internal/counter"
 )
@@ -64,10 +65,11 @@ type Snapshot struct {
 	Minutes      []counter.Minute
 	Total        uint64
 	LatestMinute *int64
+	Activity     ActivityStats
 }
 
 // Snapshot reads counts, coverage and lifetime total from one consistent transaction.
-func (r *Reader) Snapshot(ctx context.Context, start, end int64) (Snapshot, error) {
+func (r *Reader) Snapshot(ctx context.Context, start, end int64, now time.Time) (Snapshot, error) {
 	var out Snapshot
 	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {
@@ -102,6 +104,10 @@ func (r *Reader) Snapshot(ctx context.Context, start, end int64) (Snapshot, erro
 	rows.Close()
 	if err != nil {
 		return out, errors.New("cannot finish aggregate query")
+	}
+	out.Activity, err = readActivity(ctx, tx, now, nil)
+	if err != nil {
+		return out, err
 	}
 	if err := tx.Commit(); err != nil {
 		return out, errors.New("cannot finish aggregate snapshot")

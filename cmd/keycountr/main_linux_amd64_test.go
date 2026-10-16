@@ -111,12 +111,12 @@ func TestCountingWithoutSessionServices(t *testing.T) {
 			if err != nil {
 				t.Fatalf("CLI failed: %v\n%s", err, output)
 			}
-			if !bytes.Contains(output, []byte("total=23 state=stopped")) || !bytes.Contains(output, []byte("pending=0 storage=ok")) || strings.Contains(string(output), "paused") {
+			if !bytes.Contains(output, []byte("total=23 avg7=none state=stopped")) || !bytes.Contains(output, []byte("pending=0 storage=ok")) || strings.Contains(string(output), "paused") {
 				t.Fatalf("unexpected lifecycle output: %s", output)
 			}
-			status := regexp.MustCompile(`^total=[0-9]+ state=(starting|counting|no-input|stopped) keyboards=[0-9]+/[0-9]+ unavailable=[0-9]+ dropped=[0-9]+ read_errors=[0-9]+ pending=[0-9]+ storage=(ok|retrying)$`)
+			status := regexp.MustCompile(`^today=[0-9]+ previous=(none|[0-9]+\([0-9]{4}-[0-9]{2}-[0-9]{2}\)) total=[0-9]+ avg7=(none|[0-9]+\.[0-9]\([1-7]d\)) state=(starting|counting|no-input|stopped) keyboards=[0-9]+/[0-9]+ unavailable=[0-9]+ dropped=[0-9]+ read_errors=[0-9]+ pending=[0-9]+ storage=(ok|retrying)$`)
 			for _, line := range strings.Split(strings.TrimSpace(string(output)), "\n") {
-				if strings.HasPrefix(line, "total=") && !status.MatchString(line) {
+				if strings.HasPrefix(line, "today=") && !status.MatchString(line) {
 					t.Fatalf("status contains non-aggregate fields: %s", line)
 				}
 			}

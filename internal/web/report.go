@@ -76,15 +76,16 @@ type Bucket struct {
 }
 
 type Report struct {
-	Start         time.Time  `json:"start"`
-	End           time.Time  `json:"end"`
-	Timezone      string     `json:"timezone"`
-	Granularity   string     `json:"granularity"`
-	RefreshedAt   time.Time  `json:"refreshed_at"`
-	LatestMinute  *time.Time `json:"latest_saved_minute"`
-	Total         uint64     `json:"total"`
-	LifetimeTotal uint64     `json:"lifetime_total"`
-	Buckets       []Bucket   `json:"buckets"`
+	Start         time.Time             `json:"start"`
+	End           time.Time             `json:"end"`
+	Timezone      string                `json:"timezone"`
+	Granularity   string                `json:"granularity"`
+	RefreshedAt   time.Time             `json:"refreshed_at"`
+	LatestMinute  *time.Time            `json:"latest_saved_minute"`
+	Total         uint64                `json:"total"`
+	LifetimeTotal uint64                `json:"lifetime_total"`
+	Buckets       []Bucket              `json:"buckets"`
+	Activity      storage.ActivityStats `json:"activity"`
 }
 
 func label(t time.Time, q Query) string {
@@ -102,6 +103,7 @@ func label(t time.Time, q Query) string {
 
 func Aggregate(q Query, snapshot storage.Snapshot, now time.Time) Report {
 	out := Report{Start: q.Start, End: q.End, Timezone: q.Location.String(), Granularity: q.Granularity, RefreshedAt: now, LifetimeTotal: snapshot.Total, Buckets: []Bucket{}}
+	out.Activity = snapshot.Activity
 	if snapshot.LatestMinute != nil {
 		t := time.Unix(*snapshot.LatestMinute, 0).In(q.Location)
 		out.LatestMinute = &t

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -20,7 +21,7 @@ import (
 
 type fixture struct{ fail bool }
 
-func (f fixture) Snapshot(context.Context, int64, int64) (storage.Snapshot, error) {
+func (f fixture) Snapshot(context.Context, int64, int64, time.Time) (storage.Snapshot, error) {
 	if f.fail {
 		return storage.Snapshot{}, errors.New("sensitive fixture path")
 	}
@@ -262,5 +263,65 @@ func TestLoopbackListener(t *testing.T) {
 	if listener, err := Listen(-1); err == nil {
 		listener.Close()
 		t.Fatal("invalid port accepted")
+	}
+}
+
+func TestActivityCardsIgnoreDateFiltersAndUseReportingTimezone(t *testing.T) {
+	loc, err := time.LoadLocation("Asia/Riyadh")
+	if err != nil {
+		t.Fatal(err)
+	}
+	today := time.Date(2026, 10, 19, 0, 0, 0, 0, loc)
+	dir := t.TempDir()
+	if err := os.Chmod(dir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	store, err := storage.Open(ctx, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	if err := store.Apply(ctx, "history", []counter.Minute{
+		{Start: today.AddDate(0, 0, -1).Unix(), Count: 10},
+		{Start: today.Add(-time.Minute).Unix(), Count: 20},
+		{Start: today.Unix(), Count: 11},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	reader, err := storage.OpenReader(ctx, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reader.Close()
+	handler := Handler(reader, func() time.Time { return today.Add(23 * time.Hour) })
+	for _, tc := range []struct {
+		zone            string
+		today, previous uint64
+		average         float64
+		days            int
+	}{{"Asia/Riyadh", 11, 30, 30, 1}, {"UTC", 0, 31, 20.5, 2}} {
+		for _, path := range []string{"/", "/api/report"} {
+			response := httptest.NewRecorder()
+			handler.ServeHTTP(response, httptest.NewRequest("GET", "http://127.0.0.1:8080"+path+"?start=2020-01-01&end=2020-01-02&timezone="+tc.zone, nil))
+			if response.Code != 200 {
+				t.Fatal(response.Code, response.Body.String())
+			}
+			if path == "/" {
+				body := response.Body.String()
+				if !strings.Contains(body, "Previous recorded day") || !strings.Contains(body, "Last 7 recorded days average") || !strings.Contains(body, fmt.Sprintf(`class="number">%.1f</div>`, tc.average)) || strings.Contains(body, "%!") {
+					t.Fatalf("missing or malformed activity cards: %s", body)
+				}
+				continue
+			}
+			var report Report
+			if err := json.Unmarshal(response.Body.Bytes(), &report); err != nil {
+				t.Fatal(err)
+			}
+			stats := report.Activity
+			if report.Total != 0 || report.LifetimeTotal != 41 || stats.Today != tc.today || stats.Previous == nil || stats.Previous.Count != tc.previous || stats.Average == nil || *stats.Average != tc.average || stats.Days != tc.days {
+				t.Fatalf("report stats: %+v", report)
+			}
+		}
 	}
 }

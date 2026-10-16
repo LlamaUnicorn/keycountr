@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"syscall"
-	"time"
 
 	"keycountr/internal/counter"
 	_ "modernc.org/sqlite"
@@ -213,47 +212,6 @@ func (s *Store) Total(ctx context.Context) (uint64, error) {
 		return 0, errors.New("cannot read persisted total")
 	}
 	return total, nil
-}
-
-type DailySummary struct {
-	PreviousDay       *time.Time
-	Previous, Current uint64
-	Receipt           string
-}
-
-// DailyTotals finds the latest earlier day with presses, considering a newer
-// pending day as well. Counts and retry receipt share one read transaction.
-// today and pendingDay are local calendar midnights in the same timezone.
-func (s *Store) DailyTotals(ctx context.Context, today time.Time, pendingDay *time.Time) (out DailySummary, err error) {
-	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
-	if err != nil {
-		return out, errors.New("cannot read daily totals")
-	}
-	defer tx.Rollback()
-	var latest sql.NullInt64
-	if err := tx.QueryRowContext(ctx, `SELECT max(bucket_start) FROM minute_counts WHERE bucket_start < ? AND count > 0`, today.Unix()).Scan(&latest); err != nil {
-		return out, errors.New("cannot read previous recorded day")
-	}
-	if latest.Valid {
-		local := time.Unix(latest.Int64, 0).In(today.Location())
-		day := time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, today.Location())
-		out.PreviousDay = &day
-	}
-	if pendingDay != nil && pendingDay.Before(today) && (out.PreviousDay == nil || pendingDay.After(*out.PreviousDay)) {
-		out.PreviousDay = pendingDay
-	}
-	if out.PreviousDay != nil {
-		if err := tx.QueryRowContext(ctx, `SELECT coalesce(sum(count), 0) FROM minute_counts WHERE bucket_start >= ? AND bucket_start < ?`, out.PreviousDay.Unix(), out.PreviousDay.AddDate(0, 0, 1).Unix()).Scan(&out.Previous); err != nil {
-			return out, errors.New("cannot read previous daily total")
-		}
-	}
-	if err := tx.QueryRowContext(ctx, `SELECT
- coalesce(sum(count), 0),
- coalesce((SELECT last_batch FROM collector_state WHERE singleton = 1), '')
- FROM minute_counts WHERE bucket_start >= ? AND bucket_start < ?`, today.Unix(), today.AddDate(0, 0, 1).Unix()).Scan(&out.Current, &out.Receipt); err != nil {
-		return out, errors.New("cannot read daily totals")
-	}
-	return out, nil
 }
 
 func (s *Store) Close() error {

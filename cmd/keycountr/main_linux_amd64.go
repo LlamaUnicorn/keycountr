@@ -192,8 +192,8 @@ func collect(ctx context.Context, store *storage.Store, excluded []string, quiet
 			storageState = "retrying"
 		}
 		daily := dailyStatus(store, time.Now(), buffer.Rows(), batch, batchID)
-		status.show(fmt.Sprintf("%s total=%d state=%s keyboards=%d/%d unavailable=%d dropped=%d read_errors=%d pending=%d storage=%s",
-			daily, total, state, c.Open, c.Interfaces, c.Unavailable, c.Dropped, c.ReadErrors, buffer.Pending(), storageState), final)
+		status.show(fmt.Sprintf("%s total=%d %s state=%s keyboards=%d/%d unavailable=%d dropped=%d read_errors=%d pending=%d storage=%s",
+			daily.Daily, total, daily.Average, state, c.Open, c.Interfaces, c.Unavailable, c.Dropped, c.ReadErrors, buffer.Pending(), storageState), final)
 	}
 	finish := func(cause error) error {
 		devices.Close()

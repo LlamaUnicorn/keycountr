@@ -42,7 +42,7 @@ func TestDailyStatusAcrossMidnightAndRetries(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer store.Close()
-			if got := dailyStatus(store, before, nil, nil, ""); got != "today=0 previous=none" {
+			if got := dailyStatus(store, before, nil, nil, "").Daily; got != "today=0 previous=none" {
 				t.Fatalf("empty history: %s", got)
 			}
 			if err := store.Apply(ctx, "history", []counter.Minute{
@@ -59,8 +59,22 @@ func TestDailyStatusAcrossMidnightAndRetries(t *testing.T) {
 			var batch []counter.Minute
 			check := func(now time.Time, want string) {
 				t.Helper()
-				if got := dailyStatus(store, now, buffer.Rows(), batch, "retry"); got != want {
+				display := dailyStatus(store, now, buffer.Rows(), batch, "retry")
+				if got := display.Daily; got != want {
 					t.Fatalf("at %s: %s, want %s", now, got, want)
+				}
+				wantAverage := "avg7=53.0(2d)"
+				if now.After(before) {
+					wantAverage = "avg7=37.3(3d)"
+				}
+				if now.After(after) {
+					wantAverage = "avg7=28.8(4d)"
+				}
+				if want == "today=? previous=?" {
+					wantAverage = "avg7=?"
+				}
+				if display.Average != wantAverage {
+					t.Fatalf("average: %s, want %s", display.Average, wantAverage)
 				}
 			}
 			wantBefore := fmt.Sprintf("today=6 previous=7(%s)", today.AddDate(0, 0, -1).Format("2006-01-02"))
@@ -130,7 +144,7 @@ func TestDailyStatusSkipsDaysWithoutPresses(t *testing.T) {
 	}
 	check := func(pending, batch []counter.Minute, token, want string) {
 		t.Helper()
-		if got := dailyStatus(store, monday.Add(time.Hour), pending, batch, token); got != want {
+		if got := dailyStatus(store, monday.Add(time.Hour), pending, batch, token).Daily; got != want {
 			t.Fatalf("%s, want %s", got, want)
 		}
 	}

@@ -17,10 +17,14 @@
 </form>
 <p class="small">Showing {{.Start.Format "2006-01-02"}} (included) through {{.End.Format "2006-01-02"}} (excluded) · {{.Timezone}}.</p>
 <div class="stats">
+<div class="card"><div class="caption">Today · {{.Timezone}}</div><div class="number">{{.Activity.Today}}</div></div>
+<div class="card"><div class="caption">Previous recorded day · {{.Timezone}}</div>{{if .Activity.Previous}}<div class="number">{{.Activity.Previous.Count}}</div><div class="caption">{{.Activity.Previous.Date}}</div>{{else}}<p class="small">No earlier recorded days</p>{{end}}</div>
+<div class="card"><div class="caption">Last 7 recorded days average</div>{{if .Activity.Days}}<div class="number">{{average .Activity.Average}}</div><div class="caption">{{.Activity.Days}} recorded days · before today</div>{{else}}<p class="small">No earlier recorded days</p>{{end}}</div>
 <div class="card"><div class="caption">Saved presses in this range</div><div class="number">{{.Total}}</div></div>
 <div class="card"><div class="caption">All-time saved presses</div><div class="number">{{.LifetimeTotal}}</div></div>
 <div class="card"><div class="caption">Latest saved minute · {{.Timezone}}</div><p class="small">{{if .LatestMinute}}{{.LatestMinute.Format "2006-01-02 15:04 -07:00"}}{{else}}No saved data yet{{end}}</p></div>
 </div>
+<p class="small">Today, previous recorded day, and average use the reporting timezone and saved history independently of the date filters. The average uses up to seven earlier days with presses, skipping days without presses and excluding today. Recorded days can have incomplete coverage.</p>
 <section><h2>Presses by {{.Granularity}}</h2>
 <p class="small">Only committed data is shown, including the saved part of the current minute. The collector normally saves every five seconds. Latest saved minute is a bucket label, not the time of the last write or proof the collector is running.</p>
 <div class="scroll"><table><thead><tr><th>Period · {{.Timezone}}</th><th>Count chart</th><th class="count">Presses</th><th>Collection coverage</th></tr></thead><tbody>

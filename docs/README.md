@@ -31,6 +31,12 @@ In an interactive terminal, the counter updates one status line once per second,
 
 Wait for `state=counting` in the live display, then press keys, hold a key to test repeats, and click the mouse. Ctrl+C flushes pending aggregates, prints the final total, and stops. Totals include previously committed counts and persist across restarts. `pending` reports uncommitted presses; `storage=retrying` signals a failed write. Writes occur every five seconds. The previous `--prototype` flag is still accepted for compatibility; no flags are required to count.
 
+After `total`, `avg7` shows the average presses across the last seven earlier
+recorded days, excluding today and skipping days without presses. It uses fewer
+days when necessary and shows the number used, for example `avg7=1234.5(3d)`.
+The dashboard also shows today, the previous recorded day, and this average,
+using committed data in the selected reporting timezone.
+
 `udevadm` supplies device classification. Neither D-Bus access nor a session ID is required. A private runtime directory (`$XDG_RUNTIME_DIR`, or `/run/user/UID`) holds the per-user instance lock. `-buildvcs=false` omits VCS metadata from the build; Git operations now work in this workspace.
 
 An optional read-only device-access diagnostic does not open input streams:
