@@ -66,7 +66,10 @@ The initial view shows today and the preceding six days in the machine's local
 timezone, grouped by day. The form offers start date, exclusive end date,
 hour/day/week grouping, and a timezone such as `Asia/Riyadh` or `Europe/Berlin`.
 `Local` selects the server machine's local timezone. Click **Apply / refresh**
-to load a fresh consistent snapshot; the page does not auto-refresh.
+to load a fresh consistent snapshot; the page does not auto-refresh. Cards and
+table rows use a compact layout. Date range help, explanations of the totals, and
+saved-data/coverage notes are collapsed by default; click their headings or use
+Enter/Space while focused to expand them.
 
 Date fields are blank by default: From defaults to six calendar days before
 today and Until to tomorrow in the reporting timezone. Each page reload or

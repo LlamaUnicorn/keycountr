@@ -2,7 +2,44 @@
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>keycountr · Local counts</title>
 <style>
-:root{color-scheme:light;--ink:#24342e;--muted:#596b63;--line:#d9e1da;--green:#28745a}*{box-sizing:border-box}body{margin:0;background:#f4f6f1;color:var(--ink);font:16px/1.5 system-ui,sans-serif}main{max-width:1120px;margin:auto;padding:40px 24px}header{display:flex;justify-content:space-between;align-items:center;gap:16px}h1{font-size:32px;letter-spacing:-1px;margin:0}h2{font-size:20px;margin:0 0 16px}.local{border:1px solid var(--line);border-radius:24px;padding:6px 14px;color:var(--muted)}p{color:var(--muted)}form{display:flex;flex-wrap:wrap;gap:16px;align-items:end;background:white;padding:24px;border:1px solid var(--line);border-radius:16px;margin:28px 0}label{display:grid;gap:6px;font-size:13px;font-weight:600}input,select,button{font:inherit;border:1px solid #a8b8ad;border-radius:7px;padding:10px;background:white;color:var(--ink)}button{background:var(--green);color:white;cursor:pointer;border-color:var(--green)}input:focus,select:focus,button:focus{outline:3px solid #c0dbc8;outline-offset:2px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.card,section{padding:24px;background:white;border:1px solid var(--line);border-radius:16px}.caption{color:var(--muted);font-size:13px}.number{font-size:38px;font-weight:650;font-variant-numeric:tabular-nums}.small{font-size:15px;overflow-wrap:anywhere}section{margin-top:24px}.scroll{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:14px}th{text-align:left;font-weight:600;color:var(--muted)}td,th{padding:12px 8px;border-bottom:1px solid var(--line)}td:first-child{white-space:nowrap}.chart{min-width:160px;width:30%}.track{height:14px;border-radius:3px;background:#edf1ed;overflow:hidden}.bar{height:100%;background:var(--green)}.count{text-align:right;font-variant-numeric:tabular-nums}.status{color:var(--muted)}footer{font-size:13px;color:var(--muted);margin-top:24px}@media(max-width:720px){main{padding:24px 14px}.stats{grid-template-columns:1fr}header{align-items:start}h1{font-size:27px}form{padding:18px}label{flex:1;min-width:150px}.chart{min-width:100px}}
+:root{color-scheme:light;--ink:#24342e;--muted:#596b63;--line:#d9e1da;--green:#28745a}
+*{box-sizing:border-box}
+body{margin:0;background:#f4f6f1;color:var(--ink);font:14px/1.45 system-ui,sans-serif}
+main{max-width:1120px;margin:auto;padding:24px 20px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+h1{font-size:28px;letter-spacing:-1px;margin:0}
+h2{font-size:18px;margin:0 0 10px}
+.local{border:1px solid var(--line);border-radius:24px;padding:4px 10px;color:var(--muted);font-size:13px}
+p{color:var(--muted);margin:8px 0}
+form{display:flex;flex-wrap:wrap;gap:10px 12px;align-items:end;background:white;padding:12px;border:1px solid var(--line);border-radius:10px;margin:16px 0 10px}
+label{display:grid;gap:4px;font-size:13px;font-weight:600;min-width:0}
+input,select,button{font:inherit;border:1px solid #a8b8ad;border-radius:6px;padding:7px 8px;background:white;color:var(--ink);min-width:0;max-width:100%}
+button{background:var(--green);color:white;cursor:pointer;border-color:var(--green)}
+input:focus-visible,select:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid #c0dbc8;outline-offset:2px}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.card,section{padding:12px;background:white;border:1px solid var(--line);border-radius:10px}
+.caption{color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+.number{font-size:30px;line-height:1.25;font-weight:650;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.small{font-size:13px;overflow-wrap:anywhere}
+.card p{margin:4px 0 0}
+section{margin-top:12px}
+details{color:var(--muted);font-size:13px;margin-top:10px}
+summary{cursor:pointer;width:fit-content}
+details p:last-child{margin-bottom:0}
+form details{flex-basis:100%;margin:0}
+.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-weight:600;color:var(--muted)}
+td,th{padding:7px 6px;border-bottom:1px solid var(--line)}
+td:first-child{white-space:nowrap}
+.chart{min-width:160px;width:30%}
+.track{height:10px;border-radius:3px;background:#edf1ed;overflow:hidden}
+.bar{height:100%;background:var(--green)}
+.count{text-align:right;font-variant-numeric:tabular-nums}
+.status{color:var(--muted)}
+footer{font-size:12px;color:var(--muted);margin-top:12px}
+@media(max-width:720px){main{padding:16px 12px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}header{align-items:start}h1{font-size:25px}label{flex:1 1 150px}.chart{min-width:100px}}
+@media(max-width:380px){.stats{grid-template-columns:1fr}.local{max-width:100px;text-align:center}}
 </style></head>
 <body><main>
 <header><div><h1>keycountr</h1><div class="caption">Your keyboard activity, in counts.</div></div><span class="local">Local dashboard</span></header>
@@ -12,8 +49,10 @@
 <label>Group by<select name="granularity"><option value="hour" {{if eq .Granularity "hour"}}selected{{end}}>Hour</option><option value="day" {{if eq .Granularity "day"}}selected{{end}}>Day</option><option value="week" {{if eq .Granularity "week"}}selected{{end}}>Week · Monday start</option></select></label>
 <label>Reporting timezone<input name="timezone" value="{{.Timezone}}" placeholder="Europe/Berlin" required></label>
 <button type="submit">Apply / refresh</button>
-<div class="caption">Up to 31 days for hours; 366 days for days or weeks. Changing timezone changes calendar grouping.</div>
-<div class="caption">Leave From blank for six days before today; leave Until blank for tomorrow. Blank dates update on each refresh in the reporting timezone. Set dates to keep fixed limits.</div>
+<details><summary>Date range help</summary>
+<p class="small">Up to 31 days for hours; 366 days for days or weeks. Changing timezone changes calendar grouping.</p>
+<p class="small">Leave From blank for six days before today; leave Until blank for tomorrow. Blank dates update on each refresh in the reporting timezone. Set dates to keep fixed limits.</p>
+</details>
 </form>
 <p class="small">Showing {{.Start.Format "2006-01-02"}} (included) through {{.End.Format "2006-01-02"}} (excluded) · {{.Timezone}}.</p>
 <div class="stats">
@@ -24,14 +63,17 @@
 <div class="card"><div class="caption">All-time saved presses</div><div class="number">{{.LifetimeTotal}}</div></div>
 <div class="card"><div class="caption">Latest saved minute · {{.Timezone}}</div><p class="small">{{if .LatestMinute}}{{.LatestMinute.Format "2006-01-02 15:04 -07:00"}}{{else}}No saved data yet{{end}}</p></div>
 </div>
+<details><summary>About these totals</summary>
 <p class="small">Today, previous recorded day, and average use the reporting timezone and saved history independently of the date filters. The average uses up to seven earlier days with presses, skipping days without presses and excluding today. Recorded days can have incomplete coverage.</p>
+</details>
 <section><h2>Presses by {{.Granularity}}</h2>
-<p class="small">Only committed data is shown, including the saved part of the current minute. The collector normally saves every five seconds. Latest saved minute is a bucket label, not the time of the last write or proof the collector is running.</p>
 <div class="scroll"><table><thead><tr><th>Period · {{.Timezone}}</th><th>Count chart</th><th class="count">Presses</th><th>Collection coverage</th></tr></thead><tbody>
 {{range $i,$b := .Buckets}}<tr><td>{{$b.Label}}</td><td class="chart"><div class="track" aria-hidden="true"><div class="bar" style="width:{{index $.Widths $i}}%"></div></div></td><td class="count">{{$b.Count}}</td><td class="status">{{$b.Status}}{{if $b.Issues}} · issue flags {{$b.Issues}}{{end}}</td></tr>{{end}}
 </tbody></table></div>
+<details><summary>Saved data, coverage &amp; issue flags</summary>
+<p class="small">Only committed data is shown, including the saved part of the current minute. The collector normally saves every five seconds. Latest saved minute is a bucket label, not the time of the last write or proof the collector is running.</p>
 <p class="small">Covered zero means no saved presses during observed healthy collection. No saved coverage can mean collection was stopped, data was lost, or a write is pending. Partial and impaired periods may undercount. Coverage is a coarse estimate; it does not prove every physical press arrived. Future periods have no elapsed coverage to report.</p>
-<details><summary>Coverage issue flags</summary><p class="small">1: no input · 2: unavailable interfaces · 4: stream/read loss · 8: clock moved backward · 16: polling gap. Combined flags are added.</p></details>
+<p class="small">1: no input · 2: unavailable interfaces · 4: stream/read loss · 8: clock moved backward · 16: polling gap. Combined flags are added.</p></details>
 </section>
 <footer>Report read at {{.RefreshedAt.Format "2006-01-02 15:04:05 -07:00"}}. Use Apply / refresh for fresh data. Counts and coarse minute coverage stay on this machine.</footer>
 </main></body></html>
