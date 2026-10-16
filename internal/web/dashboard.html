@@ -7,13 +7,15 @@
 <body><main>
 <header><div><h1>keycountr</h1><div class="caption">Your keyboard activity, in counts.</div></div><span class="local">Local dashboard</span></header>
 <form method="get" action="/">
-<label>From (included)<input type="date" name="start" value="{{.From}}" required></label>
-<label>Until (excluded)<input type="date" name="end" value="{{.To}}" required></label>
+<label>From (included)<input type="date" name="start" value="{{.From}}"></label>
+<label>Until (excluded)<input type="date" name="end" value="{{.To}}"></label>
 <label>Group by<select name="granularity"><option value="hour" {{if eq .Granularity "hour"}}selected{{end}}>Hour</option><option value="day" {{if eq .Granularity "day"}}selected{{end}}>Day</option><option value="week" {{if eq .Granularity "week"}}selected{{end}}>Week · Monday start</option></select></label>
 <label>Reporting timezone<input name="timezone" value="{{.Timezone}}" placeholder="Europe/Berlin" required></label>
 <button type="submit">Apply / refresh</button>
 <div class="caption">Up to 31 days for hours; 366 days for days or weeks. Changing timezone changes calendar grouping.</div>
+<div class="caption">Leave From blank for six days before today; leave Until blank for tomorrow. Blank dates update on each refresh in the reporting timezone. Set dates to keep fixed limits.</div>
 </form>
+<p class="small">Showing {{.Start.Format "2006-01-02"}} (included) through {{.End.Format "2006-01-02"}} (excluded) · {{.Timezone}}.</p>
 <div class="stats">
 <div class="card"><div class="caption">Saved presses in this range</div><div class="number">{{.Total}}</div></div>
 <div class="card"><div class="caption">All-time saved presses</div><div class="number">{{.LifetimeTotal}}</div></div>

@@ -72,7 +72,7 @@ func Handler(source Source, now func() time.Time) http.Handler {
 			Report
 			From, To string
 			Widths   []int
-		}{report, q.Start.Format("2006-01-02"), q.End.Format("2006-01-02"), widths})
+		}{report, params.Get("start"), params.Get("end"), widths})
 	})
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Reject hostile Host/Origin values, including DNS rebinding to loopback.

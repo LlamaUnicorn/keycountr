@@ -68,6 +68,13 @@ hour/day/week grouping, and a timezone such as `Asia/Riyadh` or `Europe/Berlin`.
 `Local` selects the server machine's local timezone. Click **Apply / refresh**
 to load a fresh consistent snapshot; the page does not auto-refresh.
 
+Date fields are blank by default: From defaults to six calendar days before
+today and Until to tomorrow in the reporting timezone. Each page reload or
+**Apply / refresh** recalculates blank dates, keeping the default view on the
+latest seven days, including today. Explicit dates remain fixed across refreshes;
+either boundary can be set independently. Clear a date to restore its moving
+default. The effective range is shown below the form. Range limits still apply.
+
 - Only committed data is shown, including the saved part of the current minute.
   The normal save delay is five seconds; retries can extend it. All-time totals
   cover the entire database independently of the selected range.
