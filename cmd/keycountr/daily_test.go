@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -41,7 +42,7 @@ func TestDailyStatusAcrossMidnightAndRetries(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer store.Close()
-			if got := dailyStatus(store, before, nil, nil, ""); got != "today=0 yesterday=0" {
+			if got := dailyStatus(store, before, nil, nil, ""); got != "today=0 previous=none" {
 				t.Fatalf("empty history: %s", got)
 			}
 			if err := store.Apply(ctx, "history", []counter.Minute{
@@ -62,35 +63,85 @@ func TestDailyStatusAcrossMidnightAndRetries(t *testing.T) {
 					t.Fatalf("at %s: %s, want %s", now, got, want)
 				}
 			}
-			check(before, "today=6 yesterday=7")
+			wantBefore := fmt.Sprintf("today=6 previous=7(%s)", today.AddDate(0, 0, -1).Format("2006-01-02"))
+			wantAfter := fmt.Sprintf("today=3 previous=6(%s)", today.Format("2006-01-02"))
+			check(before, wantBefore)
 			batch = buffer.Rows()
-			check(before, "today=6 yesterday=7")
+			check(before, wantBefore)
 			// A successful commit whose acknowledgement was lost must not
 			// duplicate the batch in live status while it awaits retry.
 			if err := store.Apply(ctx, "retry", batch); err != nil {
 				t.Fatal(err)
 			}
-			check(before, "today=6 yesterday=7")
+			check(before, wantBefore)
 			if err := buffer.Observe(after, 3, true, 0); err != nil {
 				t.Fatal(err)
 			}
-			check(after, "today=3 yesterday=6")
+			check(after, wantAfter)
 			if err := store.Apply(ctx, "retry", batch); err != nil {
 				t.Fatal(err)
 			}
 			buffer.Acknowledge(batch)
 			batch = nil
-			check(after, "today=3 yesterday=6")
+			check(after, wantAfter)
 			rows := buffer.Rows()
 			if err := store.Apply(ctx, "next", rows); err != nil {
 				t.Fatal(err)
 			}
 			buffer.Acknowledge(rows)
-			check(after, "today=3 yesterday=6")
-			check(before, "today=6 yesterday=7")
-			check(after.AddDate(0, 0, 1), "today=0 yesterday=3")
+			check(after, wantAfter)
+			check(before, wantBefore)
+			check(after.AddDate(0, 0, 1), fmt.Sprintf("today=0 previous=3(%s)", after.Format("2006-01-02")))
 			store.Close()
-			check(after, "today=? yesterday=?")
+			check(after, "today=? previous=?")
 		})
 	}
+}
+
+func TestDailyStatusSkipsDaysWithoutPresses(t *testing.T) {
+	loc, err := time.LoadLocation("Asia/Riyadh")
+	if err != nil {
+		t.Fatal(err)
+	}
+	original := time.Local
+	time.Local = loc
+	t.Cleanup(func() { time.Local = original })
+	monday := time.Date(2026, 10, 19, 0, 0, 0, 0, loc)
+	friday := monday.AddDate(0, 0, -3)
+	dir := t.TempDir()
+	if err := os.Chmod(dir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	store, err := storage.Open(ctx, dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer store.Close()
+	if err := store.Apply(ctx, "history", []counter.Minute{
+		{Start: friday.AddDate(0, 0, -1).Unix(), Count: 999},
+		{Start: friday.Unix(), Count: 10},
+		{Start: friday.Add(time.Hour).Unix(), Count: 20},
+		{Start: monday.AddDate(0, 0, -1).Unix(), RunningMS: 60000, HealthyMS: 60000},
+		{Start: monday.Unix(), Count: 5},
+		{Start: monday.AddDate(0, 0, 1).Unix(), Count: 100},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	check := func(pending, batch []counter.Minute, token, want string) {
+		t.Helper()
+		if got := dailyStatus(store, monday.Add(time.Hour), pending, batch, token); got != want {
+			t.Fatalf("%s, want %s", got, want)
+		}
+	}
+	check(nil, nil, "", "today=5 previous=30(2026-10-16)")
+	// An earlier day still waiting to flush must supersede older saved history.
+	batch := []counter.Minute{{Start: monday.AddDate(0, 0, -2).Unix(), Count: 8}}
+	pending := append([]counter.Minute{{Start: monday.Unix(), Count: 2}}, batch...)
+	check(pending, batch, "retry", "today=7 previous=8(2026-10-17)")
+	if err := store.Apply(ctx, "retry", batch); err != nil {
+		t.Fatal(err)
+	}
+	check(pending, batch, "retry", "today=7 previous=8(2026-10-17)")
+	check(nil, nil, "", "today=5 previous=8(2026-10-17)")
 }

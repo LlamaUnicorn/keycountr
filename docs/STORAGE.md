@@ -11,9 +11,13 @@ go build -buildvcs=false -o bin/keycountr ./cmd/keycountr
 ./bin/keycountr
 ```
 
-The terminal shows `today`, `yesterday`, and `total` first. Daily counts use the
-machine's local calendar, include saved history and pending presses, and roll over
-at local midnight without restarting. The printed `total` includes all previously
+The terminal shows `today`, `previous`, and `total` first. `previous` compares today
+with the most recent earlier local day with recorded presses, skipping days without
+presses, including coverage-only days. Its date appears next to the count, for
+example `previous=14540(2026-10-16)`; `previous=none` means no earlier day has
+recorded presses. Daily counts use the machine's local calendar, include saved
+history and pending presses, and roll over at local midnight without restarting.
+The printed `total` includes all previously
 committed counts plus this process's new presses. Daily values show `?` if their
 saved counts cannot be read; this does not reset the counts. Daily zero counts
 alone do not establish collection coverage. `pending` is the number of presses awaiting a confirmed commit.
